@@ -1,0 +1,2 @@
+add_executable(leetcode_example leetcode_example.cpp)
+target_link_libraries(leetcode_example leetcode)
