@@ -9,6 +9,8 @@ set(INSTALL_LIB_DIR ${PROJECT_SOURCE_DIR}/lib)
 set(INSTALL_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include)
 
 include_directories(include)
+include_directories(thirdparty/googletest/googlemock/include)
+include_directories(thirdparty/googletest/googletest/include)
 
 add_subdirectory(src)
 add_subdirectory(test)
