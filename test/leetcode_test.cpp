@@ -3,7 +3,7 @@
 //
 
 #include "leetcode/leetcode.h"
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 // 1. 两数之和
 

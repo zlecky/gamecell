@@ -1,4 +1,4 @@
-include_directories(thirdparty/gbenchmark/include/benchmark)
+include_directories(thirdparty/gbenchmark/include)
 
 add_executable(string_bench string_bench.cpp)
 target_link_libraries(string_bench benchmark)

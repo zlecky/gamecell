@@ -2,9 +2,9 @@
 // Created by zhaoyongle on 2020/5/20.
 //
 
-#include "benchmark/benchmark.h"
+#include <benchmark/benchmark.h>
+
 #include <array>
-#include <iostream>
 
 constexpr int len = 1000;
 
