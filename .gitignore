@@ -3,3 +3,10 @@ build/*
 
 bin/*
 !bin/.git-keep
+
+.idea/
+cmake-build-debug/
+
+/3party/*
+!/3party/.git-keep
+!/3party/CMakeLists.txt
