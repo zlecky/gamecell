@@ -8,9 +8,12 @@ set(INSTALL_BIN_DIR ${PROJECT_SOURCE_DIR}/bin)
 set(INSTALL_LIB_DIR ${PROJECT_SOURCE_DIR}/lib)
 set(INSTALL_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include)
 
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
+# include module cmake
+include(spdlog)
+
 include_directories(include)
-include_directories(3party/googletest/googlemock/include)
-include_directories(3party/googletest/googletest/include)
 
 add_subdirectory(src)
 add_subdirectory(test)
