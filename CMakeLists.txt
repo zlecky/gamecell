@@ -12,6 +12,7 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 # include module cmake
 include(spdlog)
+include(googletest)
 
 include_directories(include)
 
