@@ -17,6 +17,7 @@ set(INSTALL_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include)
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 include(spdlog)
+include(yaml)
 include(googletest)
 include(gbenchmark)
 
@@ -28,4 +29,3 @@ add_subdirectory(src)
 add_subdirectory(test)
 add_subdirectory(bench)
 add_subdirectory(examples)
-#add_subdirectory(3party)
