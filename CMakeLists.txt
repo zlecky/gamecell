@@ -23,6 +23,7 @@ include(gbenchmark)
 
 # include dirs
 include_directories(include)
+include_directories(3party/rapidxml/include)
 
 # sub dirs
 add_subdirectory(src)
