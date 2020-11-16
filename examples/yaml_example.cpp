@@ -4,7 +4,7 @@
 using namespace std;
 
 int main(int argc,char** argv) {
-    YAML::Node config = YAML::LoadFile("data/helloworld.yaml");
+    YAML::Node config = YAML::LoadFile("data/yaml-cpp.yaml");
 
     cout << "name:" << config["name"].as<string>() << endl;
     cout << "sex:"  << config["sex"].as<string>() << endl;

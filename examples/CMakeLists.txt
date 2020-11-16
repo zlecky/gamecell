@@ -5,8 +5,14 @@ add_executable(spdlog_example spdlog_example.cpp)
 target_link_libraries(spdlog_example spdlog::spdlog)
 
 configure_file(
-    ../data/helloworld.yaml
-    ./data/helloworld.yaml
-    )
+        ../data/yaml-cpp.yaml
+        ./data/yaml-cpp.yaml
+)
 add_executable(yaml_example yaml_example.cpp)
 target_link_libraries(yaml_example yaml-cpp)
+
+add_executable(rapidxml_example rapidxml_example.cpp)
+configure_file(
+        ../data/rapidxml.xml
+        ./data/rapidxml.xml
+)

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8" ?>
+<!--RapidXml很好用哟！-->
+<config>
+    <srv>
+        <!--服务器配置-->
+        <item id="1" ip="127.0.0.1" port="8081"/>
+        <item id="2" ip="127.0.0.1" port="8082">2</item>
+        <item id="3" ip="127.0.0.1" port="8083"/>
+        <item id="4" ip="127.0.0.1" port="8084"/>
+        <item id="5" ip="127.0.0.1" port="8085"/>
+        <item id="6" ip="127.0.0.1" port="8086"/>
+        <item id="7" ip="127.0.0.1" port="8087"/>
+        <item id="8" ip="127.0.0.1" port="8088"/>
+        <item id="9" ip="127.0.0.1" port="8089"/>
+        <item id="10" ip="127.0.0.1" port="8090"/>
+    </srv>
+</config>
