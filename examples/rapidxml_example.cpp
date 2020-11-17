@@ -186,16 +186,85 @@ namespace {
 
         write_doc_to_xml(file, doc);
     }
+
+    void remove_xml_node_attr(const std::string& file) {
+        rapidxml::file<> fd(file.data());
+
+        rapidxml::xml_document<> doc;
+        doc.parse<rapidxml::parse_no_data_nodes>(fd.data());
+
+        auto root = doc.first_node();
+        auto srv = root->first_node("srv");
+
+        // remove first and last node of "srv"
+        srv->remove_first_node();
+        srv->remove_last_node();
+
+        for (auto item = srv->first_node("item"); item != nullptr; item = item->next_sibling()) {
+            auto id = item->first_attribute("id");
+            if (id != nullptr) {
+                // remove 2th node's attrs
+                if (2 == std::strtol(id->value(), nullptr, 10))
+                    item->remove_all_attributes();
+                else if (3 == std::strtol(id->value(), nullptr, 10)) {
+                    // remove 3th node's first attr
+                    item->remove_first_attribute();
+                    // remove 3th node's last attr
+                    item->remove_last_attribute();
+
+                    // remove 3th node's sub nodes
+                    item->remove_all_nodes();
+                }
+            }
+        }
+
+        write_doc_to_xml(file, doc);
+    }
+
+    void insert_xml_node_attr(const std::string& file) {
+        rapidxml::file<> fd(file.data());
+
+        rapidxml::xml_document<> doc;
+        doc.parse<rapidxml::parse_no_data_nodes>(fd.data());
+
+        auto root = doc.first_node();
+        auto srv = root->first_node("srv");
+
+        for (auto item = srv->first_node("item"); item != nullptr; item = item->next_sibling()) {
+            auto id = item->first_attribute("id");
+            if (id != nullptr) {
+                // insert new "item" before 2th "item"
+                if (2 == std::strtol(id->value(), nullptr, 10)) {
+                    auto new_item = doc.allocate_node(rapidxml::node_element, "item", "11");
+
+                    // new "item" some attrs
+                    new_item->append_attribute(doc.allocate_attribute("id", doc.allocate_string(std::to_string(11).data())));
+                    new_item->append_attribute(doc.allocate_attribute("ip", "192.168.0.1"));
+                    new_item->append_attribute(doc.allocate_attribute("port", doc.allocate_string(std::to_string(11 + 8080).data())));
+
+                    root->insert_node(item, new_item);
+                }
+            }
+        }
+
+        write_doc_to_xml(file, doc);
+    }
 }
 
 int main() {
-    //create_xml("data/rapidxml.xml");
+    const std::string file("data/rapidxml.xml");
 
-    //read_xml_by_file("data/rapidxml.xml");
+    //create_xml(file);
 
-    //read_xml_by_stream("data/rapidxml.xml");
+    //read_xml_by_file(file);
 
-    modify_xml_node_attr("data/rapidxml.xml");
+    //read_xml_by_stream(file);
+
+    //modify_xml_node_attr(file);
+
+    //remove_xml_node_attr(file);
+
+    insert_xml_node_attr(file);
 
     return 0;
 }
