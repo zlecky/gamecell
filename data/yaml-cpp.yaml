@@ -1,9 +1,22 @@
-name: frank
-sex: male
-age: 18
+player:
+  - uid: 1
+    name: p1
+    sex : 男
+    level: 10
+    objs:
+      - id: 100
+        desc: 回血丹
+      - id: 102
+        desc: 经验丹
+    city: 上海
 
-skills: 
-  c++: 1
-  java: 1
-  android: 1
-  python: 1
+  - uid: 2
+    name: p2
+    sex : 女
+    level: 8
+    objs:
+      - id: 100
+        desc: 手镯
+      - id: 102
+        desc: 帽子
+    city: 重庆
