@@ -16,3 +16,9 @@ configure_file(
         ../data/rapidxml.xml
         ./data/rapidxml.xml
 )
+
+add_executable(json_example json_example.cpp)
+configure_file(
+        ../data/json.json
+        ./data/json.json
+)

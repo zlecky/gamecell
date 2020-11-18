@@ -20,10 +20,12 @@ include(spdlog)
 include(yaml)
 include(googletest)
 include(gbenchmark)
+include(json)
 
 # include dirs
 include_directories(include)
 include_directories(3party/rapidxml/include)
+include_directories(3party/json/include)
 
 # sub dirs
 add_subdirectory(src)
