@@ -28,11 +28,29 @@ configure_file(
 )
 
 # curl
-find_package(CURL)
 add_executable(curl_example curl_example.cpp)
+find_package(CURL)
 if(CURL_FOUND)
     target_include_directories(curl_example PRIVATE ${CURL_INCLUDE_DIR})
     target_link_libraries(curl_example ${CURL_LIBRARY})
 else(CURL_FOUND)
     message(FATAL_ERROR ”CURL library not found”)
 endif(CURL_FOUND)
+
+# rdkafka
+#add_executable(rdkafka_example rdkafka_example.cpp)
+#target_include_directories(rdkafka_example PUBLIC /usr/local/include)
+#target_link_libraries(rdkafka_example PUBLIC /usr/local/lib/librdkafka++.a)
+
+add_executable(rdkafka_example rdkafka_example.cpp)
+find_package(RDKAFKA)
+if(RDKAFKA_FOUND)
+    target_include_directories(rdkafka_example PUBLIC ${RDKAFKA_INCLUDE_DIR})
+    message(${RDKAFKA_INCLUDE_DIR})
+
+    target_link_libraries(rdkafka_example ${RDKAFKA++_LIBRARY})
+    message(${RDKAFKA_LIBRARY})
+    message(${RDKAFKA++_LIBRARY})
+else(RDKAFKA_FOUND)
+    message(FATAL_ERROR ”RDKAFKA library not found”)
+endif(RDKAFKA_FOUND)

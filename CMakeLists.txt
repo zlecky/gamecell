@@ -14,7 +14,8 @@ set(INSTALL_LIB_DIR ${PROJECT_SOURCE_DIR}/lib)
 set(INSTALL_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include)
 
 # some modules cmake dirs
-set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+#set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 
 include(spdlog)
 include(yaml)
