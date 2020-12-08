@@ -38,22 +38,11 @@ else(CURL_FOUND)
 endif(CURL_FOUND)
 
 # rdkafka
-#add_executable(rdkafka_example rdkafka_example.cpp)
-#target_include_directories(rdkafka_example PUBLIC /usr/local/include)
-#target_link_libraries(rdkafka_example PUBLIC /usr/local/lib/librdkafka++.a)
-
-add_executable(rdkafka_example rdkafka_example.cpp)
+add_executable(rdkafka_producer_example rdkafka_producer_example.cpp)
 find_package(RDKAFKA)
 if(RDKAFKA_FOUND)
-    add_library(rdkafka ${RDKAFKA_LIBRARY_TYPE} IMPORTED GLOBAL)
-    add_library(rdkafka++ ${RDKAFKA_LIBRARY_TYPE} IMPORTED GLOBAL)
-
-    target_include_directories(rdkafka_example PUBLIC ${RDKAFKA_INCLUDE_DIR})
-    message(${RDKAFKA_INCLUDE_DIR})
-
-    target_link_libraries(rdkafka_example ${RDKAFKAPP_LIBRARY})
-    message(${RDKAFKA_LIBRARY_DIR})
-    message(${RDKAFKAPP_LIBRARY})
+    target_include_directories(rdkafka_producer_example PUBLIC ${RDKAFKA_INCLUDE_DIR})
+    target_link_libraries(rdkafka_producer_example ${RDKAFKAPP_LIBRARY})
 else(RDKAFKA_FOUND)
     message(FATAL_ERROR ”RDKAFKA library not found”)
 endif(RDKAFKA_FOUND)
