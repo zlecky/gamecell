@@ -8,6 +8,9 @@ set(GBENCHMARK_VERSION 1.5.2 CACHE STRING "gbenchmark version")
 set(BENCHMARK_ENABLE_TESTING on)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -g -fPIC")
 
+# some options
+option(RDKAFKA_STATIC_LIB "Link with Rdkafka static library." OFF)
+
 # libs path
 set(INSTALL_BIN_DIR ${PROJECT_SOURCE_DIR}/bin)
 set(INSTALL_LIB_DIR ${PROJECT_SOURCE_DIR}/lib)
