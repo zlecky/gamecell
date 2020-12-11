@@ -1,0 +1,299 @@
+@startuml
+
+title network类图
+
+'继承 Extension <|--  继承关系
+'组合 Composition *--> 整体由部分构成，整体没有了，部分不存在
+'聚合 Aggregation o--> 整体由部分构成，整体没有了，部分还存在
+
+'0.#Moccasin
+'1.#LightSeaGreen
+'2.#DarkSalmon
+'3.#BBBBFF
+'4.#SkyBlue
+'5.#LightPink
+'6.#CadetBlue
+'7.#Violet
+
+''''''''''''''''''''''''''''''Commons'''''''''''''''''''''''''''''''''''''''''''
+enum NetworkInterfaceType {
+    NETWORK_INTERFACE_INTERNAL
+    NETWORK_INTERFACE_EXTERNAL
+}
+
+''''''''''''''''''''''''''''''EventPoller'''''''''''''''''''''''''''''''''''''''''''
+together {
+class InputNotificationHandler {
+    {method} virtual handleInputNotification(int fd) = 0;
+}
+
+class EventPoller {
+    ' - 私有
+    - std::map<int, InputNotificationHandler*> fdReadHandlers_;
+    - std::map<int, InputNotificationHandler*> fdWriteHandlers_;
+
+    ' # 保护
+    # uint64 spareTime_;
+
+    ==
+    ' + 公有
+    + static EventPoller* create();
+
+    --
+    + {method} virtual int handleInputNotification(int fd);
+
+    ....
+    + {method} virtual int processPendingEvents(double maxWait) = 0;
+
+    # {method} virtual bool doRegisterForRead(int fd) = 0;
+    # {method} virtual bool doRegisterForWrite(int fd) = 0;
+
+    # {method} virtual bool doDeregisterForRead(int fd) = 0;
+    # {method} virtual bool doDeregisterForWrite(int fd) = 0;
+
+    __
+    + bool registerForRead(int fd, InputNotificationHandler* handler);
+    + bool registerForWrite(int fd, InputNotificationHandler* handler);
+
+    + bool deregisterForRead(int fd);
+    + bool deregisterForWrite(int fd);
+
+    + void triggerRead(int fd);
+    + void triggerWrite(int fd);
+
+    # bool isRegistered(int fd, bool isForRead) const;
+}
+
+class SelectPoller {
+    - fd_set fdReadSet_;
+    - fd_set fdWriteSet_;
+
+    - int fdLargest_;
+    - int fdWriteCount_;
+
+    ....
+    + {method} virtual int processPendingEvents(double maxWait);
+
+    # {method} virtual bool doRegisterForRead(int fd);
+    # {method} virtual bool doRegisterForWrite(int fd);
+
+    # {method} virtual bool doDeregisterForRead(int fd);
+    # {method} virtual bool doDeregisterForWrite(int fd);
+
+    --
+    - void updateLargestFileDescriptor();
+    - void handleInputNotifications(int& countReady, fd_set& readFDs, fd_set& writeFDs);
+}
+
+class EPoller {
+    - int epfd_;
+
+    ....
+    + {method} virtual int processPendingEvents(double maxWait);
+
+    # {method} virtual bool doRegisterForRead(int fd);
+    # {method} virtual bool doRegisterForWrite(int fd);
+
+    # {method} virtual bool doDeregisterForRead(int fd);
+    # {method} virtual bool doDeregisterForWrite(int fd);
+
+    --
+    - void doRegister(int fd, bool isRead, bool isRegister);
+}
+
+}
+
+
+
+'''''''''''''''''''''''''''''''''EventDispatcher'''''''''''''''''''''''''''''''''
+together {
+class TimeQueue64 {
+
+}
+
+class FrequentTasks {
+    - std::vector<FrequentTask*> container_;
+
+    + void add(FrequentTask* task);
+    + bool cancel(FrequentTask* task);
+    + void process();
+}
+
+class ErrorReporter {
+
+}
+
+class FrequentTask {
+    + {method} void doTask() = 0;
+
+}
+
+class EventDispatcher #BBBBFF{
+    - EventPoller* pPoller_;
+    - TimeQueue64* pTimeQueue_;
+    - FrequentTasks* pFrequentTasks_;
+    - ErrorReporter* pErrorReporter_;
+}
+
+}
+
+
+''''''''''''''''''''''''''''''''''''''NetworkInterface''''''''''''''''''''''''''''
+together {
+class Endpoint {
+
+}
+
+class Address {
+
+}
+
+class Packet {
+    - char data_[PACKET_MAX_SIZE];
+    - int msgEndOffset_;
+
+    --
+    + const char* data() { return data_; };
+    + char* body() const { return data_ + HEADER_SIZE; }
+    + char* back() { return data_ + msgEndOffset_; }
+}
+
+class PacketReceiver {
+    - Endpoint& socket_;
+    - NetworkInterface& networkInterface_;
+
+    - Packet* pNextPacket_;
+
+    --
+    + {method} virtual int handleInputNotification(int fd);
+}
+
+class PacketFilter {
+
+}
+
+class Channel {
+    - PacketFilter* pFilter_;
+}
+
+class NetworkInterface #SkyBlue{
+    - Endpoint socket_; // 监听套节口-套节字
+    - Address address_; // 监听套节口-地址
+    - PacketReceiver* pPacketReceiver_; // 监听套节口-包接收器
+
+    - std::map<Address, Channel*> channelMap_;
+
+    - EventDispatcher* pDispatcher_; // owned by self
+    - EventDispatcher* pMainDispatcher_; // owned by main
+}
+
+}
+
+
+
+
+''''''''''''''''''''''''''''''''''''''''ServerApp'''''''''''''''''''''''''''''''
+together {
+class Watcher {
+
+}
+class SignalHandler {
+    + {method} void handleSingal(int sigNum) = 0;
+}
+
+class ServerAppSignalHandler {
+    ServerApp& serverApp_;
+
+    + {method} void handleSingal(int sigNum);
+}
+
+class ServerApp #LightSeaGreen{
+    # EventDispatcher& mainDispatcher_;
+    # NetworkInterface& interface_; // NETWORK_INTERFACE_INTERVAL
+
+    - std::auto_ptr<SignalHandler> pSignalHandler_;
+
+    ..
+    + {method} bool init(int argc, char* argv[]);
+    + {method} bool run();
+    + {method} bool shutDown();
+
+    + {method} void onSignaled(int sigNum);
+
+    __
+    # void addWatchers(Watcher& watcher);
+}
+
+}
+
+
+''''''''''''''''''''''''''''''''''''''''LoginApp'''''''''''''''''''''''''''''''
+together {
+class LoginApp #DarkSalmon{
+    - NetworkInterface extInterface_; // NETWORK_INTERFACE_EXTERNAL
+
+    ..
+    + {method} bool init(int argc, char* argv[]);
+    + {method} bool run();
+
+    + {method} void onSignaled(int sigNum);
+}
+
+}
+
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+' EventDispatcher
+InputNotificationHandler <|-- EventPoller
+
+EventPoller <|-- SelectPoller
+EventPoller <|-- EPoller
+InputNotificationHandler "n"<--"1" EventPoller : has
+
+EventDispatcher *-- EventPoller
+EventDispatcher *-- TimeQueue64
+EventDispatcher *-- FrequentTasks
+EventDispatcher *-- ErrorReporter
+
+FrequentTask "n"<--"1" FrequentTasks : has
+
+' NetworkInterface
+NetworkInterface *-- Endpoint
+NetworkInterface *-- Address
+NetworkInterface *-- PacketReceiver
+NetworkInterface *-- EventDispatcher : pDispatcher_
+
+EventDispatcher "1"<--"1" NetworkInterface : has pMainDispatcher_
+Channel "n"<--"1" NetworkInterface : has
+
+InputNotificationHandler <|-- PacketReceiver
+PacketReceiver *-- Packet
+PacketFilter *-- Channel
+
+' ServerApp
+' 继承(接口和实现关系)
+SignalHandler <|-- ServerAppSignalHandler
+
+' 聚合(聚合关联：有整体与局部的关系，没了整体，局部也可存在)
+ServerApp o-- NetworkInterface
+ServerApp o-- EventDispatcher
+
+' 组合(组合关联：强烈的包含关系，组合类负责被组合累的生命周期)
+ServerApp *-- SignalHandler
+
+' 关联(一般关联：一种引用关系，通常使用属性表达)
+ServerApp "1"<--"1" ServerAppSignalHandler : has
+
+' 依赖(对象间最弱的关联方式，一种临时性的关联)
+ServerApp <.. Watcher
+
+' LoginApp
+ServerApp <|-- LoginApp
+Singleton <|-- LoginApp
+LoginApp o-- NetworkInterface
+
+
+
+
+
+@enduml

@@ -1,0 +1,68 @@
+@startuml
+
+title "loginapp底层网络"
+
+'PacketReceiver
+|lib/network/packet_receiver|
+
+start
+
+partition PacketReceiver::handleInputNotification {
+    :if (this->processSocket(true)) {
+        while (this->processSocket(false))
+        // pass
+    ;
+}
+
+partition PacketReceiver::processSocket {
+    :int len = pNextPacket_->recvFromEndpoint(socket_, srcAddr);
+}
+
+|#Moccasin|lib/network/packet|
+
+partition Packetr::recvFromEndpoint {
+    :int len = ep.recvfrom(data_, MAX_SIZE, (uint16_t*)&addr.port, (uint32_t*)&addr.ip);
+    :if (len > 0)
+        this->msgEndOffset(len);
+    :return len;
+}
+
+|lib/network/packet_receiver|
+
+partition {
+    :if (len <= 0)
+        return this->checkSocketErrors(len, expectingPacket);
+
+    :PacketPtr curPacket = pNextPacket_
+    pNextPacket_ = new Packet();
+
+    :Reason ret = this->processPacket(srcAddr, curPacket.get(), &statsHelper);
+
+    :return true;
+}
+
+partition PacketReceiver::processPacket {
+    :Channel* pChannel = network_interface_.findChannel(addr, true);
+    :if (pChannel != nullptr) {
+        pChannel->onPacketReceived(p->totalSize())
+
+        if (pChannel->pFilter() && !pChannel->hasRemoteFailed())
+            return pChannel->pFilter()->recv(*this, addr, p, ...)
+     };
+
+     :return this->processFilteredPacket(addr, p, ...);
+}
+
+partition PacketReceiver::processFilteredPacket {
+    :if (p->totalSize() < int(sizeof(Packet::Flags)))
+        return;
+
+    :...;
+
+    :this->processOrderedPacket(addr, ...);
+
+}
+
+stop
+
+@enduml

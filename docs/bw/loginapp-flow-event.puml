@@ -1,0 +1,147 @@
+@startuml
+
+title "loginapp事件循环"
+
+'main
+|server/loginapp/main.cpp|
+
+start
+
+partition main {
+    :BIGWORLD_MAIN;
+}
+
+|#Moccasin|lib/server/bwservice|
+
+partition BIGWORLD_MAIN {
+    :BWResource::init(argc, (const char **)argv);
+    :BWConfig::init(argc, argv);
+    :bwParseCommandLine(argc, argv);
+
+    :return bwMain(argc, argv);
+}
+
+partition bwMain {
+    :return bwMainT<LoginApp>(argc, argv);
+}
+
+partition bwMainT {
+    :EventDispatcher dispatcher;
+
+    :NetworkInterface interface(dispatcher, NETWORK_INTERFACE_INTERNAL, ...);
+    :SignalProcessor signalProcessor(dispatcher);
+
+    ':BW_MESSAGE_FORWARDER3(LoginApp::appName(), LoginApp::configPath(), shouldLog, dispatcher, interface );
+
+    ':START_MSG(LoginApp::appName());
+
+    :int result = doBWMainT<LoginApp>(dispatcher, interface, argc, argv);
+
+    ':LoginApp::postDestruction();
+
+    :return result;
+}
+
+partition doBWMainT {
+    :ServerAppConfig::init(LoginApp::Config::postInit);
+
+    :LoginApp server(dispatcher, interface);
+    :return serverApp.runApp( argc, argv ) ? EXIT_SUCCESS : EXIT_FAILURE;
+}
+
+'ServerApp
+|lib/server/server_app|
+
+partition ServerApp::runApp {
+    :this->init(argc, argv);
+    :bool result = this->run();
+    :interface_.prepareForShutdown();
+    :return result;
+}
+
+partition ServerApp::run {
+    :mainDispatcher_.processUntilBreak;
+}
+
+'EventDispatcher
+|#Moccasin|lib/network/event_dispatcher|
+
+
+partition EventDispatcher::processUntilBreak {
+    :this->processContinuously();
+}
+
+partition EventDispatcher::processContinuously {
+    :breakProcessing_ = false
+    while (!breakProcessing_) {
+        this->processOnce()
+    };
+}
+
+partition EventDispatcher::processOnce {
+    :breakProcessing_ = false;
+
+    fork
+        :this->processFrequentTasks();
+        detach
+     fork again
+        :if (!breakProcessing_) {
+            this->processTimers()
+        };
+        detach
+     fork again
+        :this->processStats();
+        detach
+     fork again
+        :if (!breakProcessing_) {
+            return this->processNetwork()
+        };
+        partition EventDispatcher::processNetwork {
+            :return pPoller_->processPendingEvents();
+        }
+     :return 0;
+     endfork
+}
+
+'EventPoller
+|lib/network/event_poller|
+
+partition EPoller::processPendingEvents {
+    :struct epoll_event events[MAX_EVENTS];
+    :int nfds = epoll_wait(epfd_, events, MAX_EVENTS, maxWaitInMilliseconds);
+    :for (int i=0; i<nfds; ++i) {
+        if (events[i].events & (EPOLLIN|EPOLLERR|EPOLLHUP))
+            this->triggerRead(events[i].data.fd)
+
+        if (events[i].events & (EPOLLOUT))
+            this->triggerWrite( events[i].data.fd )
+    };
+
+}
+
+fork
+    partition EPoller::triggerRead {
+        :InputNotificationHandler* pHandler = fdReadHandlers_[fd];
+        :if (pHandler)
+            pHandler->handleInputNotification(fd);
+    }
+    detach
+fork again
+    partition EPoller::triggerWrite {
+        :InputNotificationHandler* pHandler = fdWriteHandlers_[fd];
+        :if (pHandler)
+            pHandler->handleInputNotification(fd);
+    }
+    detach
+endfork
+
+'EventPoller
+|lib/network/interfaces.hpp|
+
+partition InputNotificationHandler::handleInputNotification {
+    :virtual int handleInputNotification( int fd ) = 0;
+}
+
+stop
+
+@enduml
