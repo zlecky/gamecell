@@ -12,11 +12,10 @@
 #include "basictypes.h"
 
 namespace TinyNet {
-/**
- *	This class provides a wrapper around a socket.
- *
- *	@ingroup network
- */
+    /**
+     * @brief
+     * This class provides a wrapper around a socket.
+     */
     class Endpoint
     {
     public:
