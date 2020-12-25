@@ -1,3 +1,4 @@
+# leetcode
 add_executable(lc_example leetcode_example.cpp)
 target_link_libraries(lc_example leetcode)
 
@@ -50,3 +51,7 @@ if(RDKAFKA_FOUND)
 else(RDKAFKA_FOUND)
     message(FATAL_ERROR ”RDKAFKA library not found”)
 endif(RDKAFKA_FOUND)
+
+# tinynet
+add_executable(net_example network_example.cpp)
+target_link_libraries(net_example tinynet)
