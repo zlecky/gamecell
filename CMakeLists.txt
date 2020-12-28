@@ -34,6 +34,6 @@ include_directories(3party/json/include)
 # sub dirs
 add_subdirectory(src)
 add_subdirectory(test)
-add_subdirectory(bench)
+add_subdirectory(benchmark)
 add_subdirectory(examples)
-add_subdirectory(docs)
+#add_subdirectory(docs)
