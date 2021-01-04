@@ -2,6 +2,10 @@ file(GLOB_RECURSE SOURCE_FILES "*.cpp" "*.ipp")
 
 #set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
+# macos api
+#add_definitions(-D OS_LINUX)
+add_definitions(-D OS_MACOSX)
+
 add_library(tinynet STATIC ${SOURCE_FILES})
 target_link_libraries(tinynet spdlog::spdlog)
 
