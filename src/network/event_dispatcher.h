@@ -1,59 +1,43 @@
 #ifndef __EVENT_DISPATCHER_H__
 #define __EVENT_DISPATCHER_H__
 
-#include "defs.h"
-#include "util.h"
+#include "types.h"
+#include "utils.h"
+#include "queues.h"
 
 namespace TinyNet {
-    class DispatcherImp;
-
-    class EventDispatcherBase : private Noncopyable {
+    class BaseDispatcher : private Noncopyable {
     public:
-        virtual EventDispatcherBase* dispatcher() = 0;
+        virtual BaseDispatcher* dispatcher() = 0;
     };
 
-    /**
-     * Single thread's event dispatcher.
-     */
-    class EventDispatcher : public EventDispatcherBase {
+    class EventDispatcher : public BaseDispatcher {
     public:
-        explicit EventDispatcher(int task_capacity = 0);
+        explicit EventDispatcher(int task_cap = 0);
         virtual ~EventDispatcher();
 
     public:
-        EventDispatcherBase* dispatcher() override { return this; }
+        BaseDispatcher* dispatcher() override { return this; }
 
     public:
         void loop();
         void loop_once(int wait_ms);
 
-        EventDispatcher& exit();
-        bool exited() const;
+        void exit();
+        bool exited() const { return exit_; }
 
         void wakeup();
 
     public:
-        bool cancel(TimerId tid);
+        void trigger(Callback&& cb);
+        void trigger(const Callback& cb);
 
-        TimerId trigger_at(int64_t milli, Task&& task, int64_t interval = 0);
-        TimerId trigger_at(int64_t milli, const Task& task, int64_t interval = 0);
+    private:
+        EventPollerPtr poller_;
+        std::atomic<bool> exit_;
 
-        TimerId trigger_after(int64_t milli, Task&& task, int64_t interval = 0);
-        TimerId trigger_after(int64_t milli, const Task& task, int64_t interval = 0);
-
-    public:
-        void safe_call(Task&& task);
-        void safe_call(const Task& task);
-
-    public:
-        std::unique_ptr<DispatcherImp> imp_;
-    };
-
-    /**
-     * Multi threads' event dispatcher.
-     */
-    class MultiEventDispatcher : public EventDispatcherBase {
-
+        int wakeup_fds_[2] = {0};
+        TaskQueue<Callback> tasks_;
     };
 }
 

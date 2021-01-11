@@ -14,8 +14,8 @@
 #include <atomic>
 #include <memory>
 
-#include "defs.h"
-#include "util.h"
+#include "types.h"
+#include "utils.h"
 
 namespace TinyNet {
     /// Max event num

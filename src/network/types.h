@@ -1,5 +1,5 @@
-#ifndef __DEFS_H__
-#define __DEFS_H__
+#ifndef __TYPES_H__
+#define __TYPES_H__
 
 #include <map>
 
@@ -12,9 +12,9 @@ namespace TinyNet {
     typedef EventPoller* EventPollerPtr;
     typedef EventDispatcher* EventDispatcherPtr;
 
-    typedef std::function<void()> Task;
+    typedef std::function<void()> Callback;
     typedef std::pair<int64_t, int64_t> TimerId;
 }
 
 
-#endif//__DEFS_H__
+#endif//__TYPES_H__

@@ -4,8 +4,8 @@
 #include <memory>
 #include <functional>
 
-#include "util.h"
-#include "defs.h"
+#include "utils.h"
+#include "types.h"
 
 namespace TinyNet {
     /**
@@ -17,10 +17,10 @@ namespace TinyNet {
         virtual ~Channel();
 
     public:
-        void on_read(const Task& cb) { read_cb_ = cb; }
-        void on_write(const Task& cb) { write_cb_ = cb; }
-        void on_read(Task&& cb) { read_cb_ = std::move(cb); }
-        void on_write(Task&& cb) { write_cb_ = std::move(cb); }
+        void on_read(const Callback& cb) { read_cb_ = cb; }
+        void on_write(const Callback& cb) { write_cb_ = cb; }
+        void on_read(Callback&& cb) { read_cb_ = std::move(cb); }
+        void on_write(Callback&& cb) { write_cb_ = std::move(cb); }
 
         bool is_readable() const;
         bool is_writable() const;

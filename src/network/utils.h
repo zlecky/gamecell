@@ -1,5 +1,5 @@
-#ifndef __UTIL_H__
-#define __UTIL_H__
+#ifndef __UTILS_H__
+#define __UTILS_H__
 
 #include <sys/types.h>
 
@@ -16,18 +16,18 @@ namespace TinyNet {
         Noncopyable& operator=(const Noncopyable&) = delete;
     };
 
-
-    /**
-     * Time function helper.
-     */
-    struct TimeHelper {
+    struct Timer {
         static int64_t timeMicro();
         static int64_t timeMilli() { return timeMicro() / 1000; }
 
         static int64_t steadyMicro();
         static int64_t steadyMilli() { return steadyMicro() / 1000; }
     };
+
+    struct Util {
+        static int add_fd_flag(int fd, int flag);
+    };
 }
 
 
-#endif//__UTIL_H__
+#endif//__UTILS_H__
