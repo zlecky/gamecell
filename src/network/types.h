@@ -5,15 +5,22 @@
 
 namespace TinyNet {
     class Channel;
-    class EventPoller;
-    class EventDispatcher;
-
     typedef Channel* ChannelPtr;
+
+    class EventPoller;
     typedef EventPoller* EventPollerPtr;
-    typedef EventDispatcher* EventDispatcherPtr;
+
+    class EventContext;
+    typedef EventContext* EventContextPtr;
+
+    class TcpConn;
+    typedef TcpConn* TcpConnPtr;
+    typedef std::function<void(const TcpConnPtr &)> TcpCallback;
+
+    class TcpAcceptor;
+    typedef TcpAcceptor* TcpAcceptorPtr;
 
     typedef std::function<void()> Callback;
-    typedef std::pair<int64_t, int64_t> TimerId;
 }
 
 

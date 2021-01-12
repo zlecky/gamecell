@@ -1,4 +1,4 @@
-#include "event_dispatcher.h"
+#include "event_context.h"
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -7,7 +7,7 @@
 #include "event_poller.h"
 
 namespace TinyNet {
-    EventDispatcher::EventDispatcher(int task_cap/* = 0*/) :
+    EventContext::EventContext(int task_cap/* = 0*/) :
         poller_(EventPoller::create_poller()),
         tasks_(task_cap),
         exit_(false) {
@@ -34,12 +34,12 @@ namespace TinyNet {
         });
     }
 
-    EventDispatcher::~EventDispatcher() {
+    EventContext::~EventContext() {
         delete poller_;
         ::close(wakeup_fds_[1]);
     }
 
-    void EventDispatcher::loop() {
+    void EventContext::loop() {
         while (!exit_) {
             this->loop_once(10000);
         }
@@ -47,27 +47,27 @@ namespace TinyNet {
         this->loop_once(0);
     }
 
-    void EventDispatcher::loop_once(int wait_ms) {
+    void EventContext::loop_once(int wait_ms) {
         poller_->loop_once(wait_ms);
     }
 
-    void EventDispatcher::exit() {
+    void EventContext::exit() {
         exit_ = true;
 
         this->wakeup();
     }
 
-    void EventDispatcher::wakeup() {
+    void EventContext::wakeup() {
         int ret = ::write(wakeup_fds_[1], "", 1);
     }
 
-    void EventDispatcher::trigger(Callback&& cb) {
+    void EventContext::trigger(Callback&& cb) {
         tasks_.push(std::move(cb));
 
         this->wakeup();
     }
 
-    void EventDispatcher::trigger(const Callback& cb) {
+    void EventContext::trigger(const Callback& cb) {
         this->trigger(Callback(cb));
     }
 }

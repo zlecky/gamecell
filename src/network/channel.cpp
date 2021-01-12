@@ -4,12 +4,12 @@
 #include <unistd.h>
 
 #include "event_poller.h"
-#include "event_dispatcher.h"
+#include "event_context.h"
 
 namespace TinyNet {
 
-    Channel::Channel(EventDispatcherPtr dispatcher, int fd, int events) :
-        dispatcher_(dispatcher), fd_(fd), events_(events) {
+    Channel::Channel(EventContextPtr dispatcher, int fd, int events) :
+            context_(dispatcher), fd_(fd), events_(events) {
         static std::atomic<int64_t> id(0);
         id_ = ++id;
         //TODO

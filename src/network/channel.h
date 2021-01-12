@@ -13,7 +13,7 @@ namespace TinyNet {
      */
     class Channel : private Noncopyable {
     public:
-        Channel(EventDispatcherPtr dispatcher, int fd, int events);
+        Channel(EventContextPtr dispatcher, int fd, int events);
         virtual ~Channel();
 
     public:
@@ -39,7 +39,7 @@ namespace TinyNet {
         short events() { return events_; }
         int64_t id() { return id_; }
         EventPollerPtr poller() { return poller_; }
-        EventDispatcherPtr dispatcher() { return dispatcher_; }
+        EventContextPtr context() { return context_; }
 
     protected:
         int fd_;
@@ -48,7 +48,7 @@ namespace TinyNet {
         uint64_t id_;
 
         EventPollerPtr poller_;
-        EventDispatcherPtr dispatcher_;
+        EventContextPtr context_;
 
         std::function<void()> read_cb_;
         std::function<void()> write_cb_;

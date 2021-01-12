@@ -1,23 +1,23 @@
-#ifndef __EVENT_DISPATCHER_H__
-#define __EVENT_DISPATCHER_H__
+#ifndef __EVENT_CONTEXT_H__
+#define __EVENT_CONTEXT_H__
 
 #include "types.h"
 #include "utils.h"
-#include "queues.h"
+#include "task_queue.h"
 
 namespace TinyNet {
-    class BaseDispatcher : private Noncopyable {
+    class EventContextBase : private Noncopyable {
     public:
-        virtual BaseDispatcher* dispatcher() = 0;
+        virtual EventContextBase* context() = 0;
     };
 
-    class EventDispatcher : public BaseDispatcher {
+    class EventContext : public EventContextBase {
     public:
-        explicit EventDispatcher(int task_cap = 0);
-        virtual ~EventDispatcher();
+        explicit EventContext(int task_cap = 0);
+        virtual ~EventContext();
 
     public:
-        BaseDispatcher* dispatcher() override { return this; }
+        EventContextBase* context() override { return this; }
 
     public:
         void loop();
@@ -41,4 +41,4 @@ namespace TinyNet {
     };
 }
 
-#endif//__EVENT_DISPATCHER_H__
+#endif//__EVENT_CONTEXT_H__
