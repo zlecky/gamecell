@@ -1,7 +1,7 @@
-#include "task_queue.h"
+#include "queue.h"
 
 namespace TinyNet {
-    void TaskPool::start() {
+    void ThreadPool::start() {
         for (auto& t : threads_) {
             std::thread th([this]() {
                 while (!tasks_.exited()) {
@@ -16,21 +16,21 @@ namespace TinyNet {
         }
     }
 
-    void TaskPool::exit() {
+    void ThreadPool::exit() {
         tasks_.exit();
     }
 
-    void TaskPool::join() {
+    void ThreadPool::join() {
         for (auto& t : threads_) {
             t.join();
         }
     }
 
-    bool TaskPool::add(Callback &cb) {
+    bool ThreadPool::add(Callback &cb) {
         return this->add(Callback(cb));
     }
 
-    bool TaskPool::add(Callback &&cb) {
+    bool ThreadPool::add(Callback &&cb) {
         return tasks_.push(std::move(cb));
     }
 }

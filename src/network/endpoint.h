@@ -4,11 +4,13 @@
 #include <string>
 #include <netinet/in.h>
 
+#include "types.h"
+
 namespace TinyNet {
     class Address {
     public:
-        explicit Address(struct sockaddr_in sin) : addr_(sin) {}
         Address(const std::string& ip, const std::string& port);
+        explicit Address(struct sockaddr_in sin) : addr_(sin) {}
         virtual ~Address() = default;
 
     public:
@@ -25,7 +27,7 @@ namespace TinyNet {
         static const int INVALID_SOCKET = -1;
 
     public:
-        Endpoint();
+        explicit Endpoint(int fd = INVALID_SOCKET);
         virtual ~Endpoint();
 
     public:
@@ -33,7 +35,7 @@ namespace TinyNet {
 
         int bind(uint16_t port = 0, uint32_t addr = INADDR_ANY);
         int listen(int backlog = 5);
-        Endpoint* accept();
+        EndpointPtr accept();
 
         int connect(uint16_t port, uint32_t addr);
 
@@ -47,7 +49,7 @@ namespace TinyNet {
     public:
         void fd(int fd);
         int fd() const { return socket_; }
-        bool is_valid() const { return socket_ != INVALID_SOCKET; }
+        bool valid() const { return socket_ != INVALID_SOCKET; }
 
         int set_non_blocking(bool non_blocking);
         int set_reuse_addr(bool reuse);
@@ -61,7 +63,7 @@ namespace TinyNet {
         int get_remote_addr(uint16_t* port, uint32_t* addr);
 
     private:
-        int socket_;
+        int socket_ = INVALID_SOCKET;
     };
 }
 

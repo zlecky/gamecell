@@ -3,26 +3,45 @@
 
 #include "types.h"
 #include "utils.h"
+#include "codec.h"
 #include "endpoint.h"
 
 namespace TinyNet {
     class TcpAcceptor : private Noncopyable {
     public:
-        explicit TcpAcceptor(EventContextPtr dispatcher, const std::string& ip, const std::string& port);
+        static TcpAcceptorPtr create_tcp_acceptor(EventContextBasePtr base, const std::string& ip, const std::string& port);
+
+    public:
+        TcpAcceptor(EventContextBasePtr base, const std::string& ip, const std::string& port);
         virtual ~TcpAcceptor();
 
     public:
-        bool start();
+        bool run();
 
     public:
+        void on_read_cb(const TcpCallback& cb) { read_cb_ = cb; }
+        void on_state_cb(const TcpCallback& cb) { state_cb_ = cb; }
+
+    public:
+        Address addr() { return addr_; }
+        EventContextPtr context() { return context_; }
+
+    protected:
         void handle_accept();
 
     private:
-        EventContextPtr context_;
+        EventContextPtr context_  = nullptr;
+        EventContextBasePtr base_ = nullptr;
 
         Address addr_;
         Endpoint endpoint_;
-        ChannelPtr listener_;
+        std::shared_ptr<Channel> channel_;
+
+        TcpCallback read_cb_;
+        TcpCallback state_cb_;
+
+        MsgCallback msg_cb_;
+        std::unique_ptr<CodecBase> codec_;
     };
 }
 

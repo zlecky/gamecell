@@ -13,14 +13,14 @@ namespace TinyNet {
      */
     class Channel : private Noncopyable {
     public:
-        Channel(EventContextPtr dispatcher, int fd, int events);
+        Channel(EventContextPtr ct, int fd, int events);
         virtual ~Channel();
 
     public:
-        void on_read(const Callback& cb) { read_cb_ = cb; }
-        void on_write(const Callback& cb) { write_cb_ = cb; }
-        void on_read(Callback&& cb) { read_cb_ = std::move(cb); }
-        void on_write(Callback&& cb) { write_cb_ = std::move(cb); }
+        void on_read_cb(const Callback& cb) { read_cb_ = cb; }
+        void on_write_cb(const Callback& cb) { write_cb_ = cb; }
+        void on_read_cb(Callback&& cb) { read_cb_ = std::move(cb); }
+        void on_write_cb(Callback&& cb) { write_cb_ = std::move(cb); }
 
         bool is_readable() const;
         bool is_writable() const;

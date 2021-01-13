@@ -16,7 +16,7 @@ namespace TinyNet {
         Util::add_fd_flag(wakeup_fds_[1], FD_CLOEXEC);
 
         auto* ch = new Channel(this, wakeup_fds_[0], kReadEvent);
-        ch->on_read([=](){
+        ch->on_read_cb([=]() {
             char buf[1024] = {0};
             int ret = (ch->fd() >= 0) ? ::read(wakeup_fds_[0], buf, sizeof(buf)) : 0;
             if (ret > 0) {

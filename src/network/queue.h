@@ -1,5 +1,5 @@
-#ifndef __QUEUES_H__
-#define __QUEUES_H__
+#ifndef __QUEUE_H__
+#define __QUEUE_H__
 
 #include <list>
 #include <mutex>
@@ -98,12 +98,12 @@ namespace TinyNet {
     };
 
     /**
-     * Taskpool class.
+     * Thread pool class.
      */
-    class TaskPool : private Noncopyable {
+    class ThreadPool : private Noncopyable {
     public:
-        explicit TaskPool(size_t thread_num, size_t task_cap = 0) : threads_(thread_num), tasks_(task_cap) {}
-        virtual ~TaskPool() = default;
+        explicit ThreadPool(size_t thread_num, size_t task_cap = 0) : threads_(thread_num), tasks_(task_cap) {}
+        virtual ~ThreadPool() = default;
 
     public:
         void start();
@@ -122,4 +122,4 @@ namespace TinyNet {
     };
 }
 
-#endif//__QUEUES_H__
+#endif//__QUEUE_H__

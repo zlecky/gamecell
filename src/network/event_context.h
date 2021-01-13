@@ -3,12 +3,12 @@
 
 #include "types.h"
 #include "utils.h"
-#include "task_queue.h"
+#include "queue.h"
 
 namespace TinyNet {
     class EventContextBase : private Noncopyable {
     public:
-        virtual EventContextBase* context() = 0;
+        virtual EventContextPtr context() = 0;
     };
 
     class EventContext : public EventContextBase {
@@ -17,7 +17,7 @@ namespace TinyNet {
         virtual ~EventContext();
 
     public:
-        EventContextBase* context() override { return this; }
+        EventContextPtr context() override { return this; }
 
     public:
         void loop();

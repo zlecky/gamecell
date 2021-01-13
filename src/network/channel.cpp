@@ -8,8 +8,8 @@
 
 namespace TinyNet {
 
-    Channel::Channel(EventContextPtr dispatcher, int fd, int events) :
-            context_(dispatcher), fd_(fd), events_(events) {
+    Channel::Channel(EventContextPtr ct, int fd, int events) :
+            context_(ct), fd_(fd), events_(events) {
         static std::atomic<int64_t> id(0);
         id_ = ++id;
         //TODO

@@ -5,10 +5,22 @@
 #include "channel.h"
 #include "event_poller.h"
 #include "event_context.h"
+#include "tcp_connection.h"
 
 namespace TinyNet {
-    TcpAcceptor::TcpAcceptor(EventContextPtr dispatcher, const std::string& ip, const std::string& port)
-        : context_(dispatcher), addr_(ip, port) {
+    TcpAcceptorPtr TcpAcceptor::create_tcp_acceptor(EventContextBasePtr base, const std::string& ip, const std::string& port) {
+        auto acceptor = std::make_shared<TcpAcceptor>(base, ip, port);
+        if (nullptr == acceptor)
+            return nullptr;
+
+        if (!acceptor->run())
+            return nullptr;
+
+        return acceptor;
+    }
+
+    TcpAcceptor::TcpAcceptor(EventContextBasePtr base, const std::string& ip, const std::string& port)
+        : base_(base), context_(base->context()), addr_(ip, port) {
 
     }
 
@@ -16,7 +28,7 @@ namespace TinyNet {
 
     }
 
-    bool TcpAcceptor::start() {
+    bool TcpAcceptor::run() {
         endpoint_.socket(SOCK_STREAM);
         endpoint_.set_reuse_addr(true);
         endpoint_.set_reuse_port(true);
@@ -28,14 +40,19 @@ namespace TinyNet {
             return false;
         }
 
-        ret = endpoint_.listen(20);
+        ret = endpoint_.listen(5);
         if (ret) {
             endpoint_.close();
             return false;
         }
 
-        listener_ = new Channel(context_, endpoint_.fd(), kReadEvent);
-        listener_->on_read([this]() {
+        channel_ = std::make_shared<Channel>(context_, endpoint_.fd(), kReadEvent);
+        if (nullptr == channel_) {
+            endpoint_.close();
+            return false;
+        }
+
+        channel_->on_read_cb([this]() {
             this->handle_accept();
         });
 
@@ -43,8 +60,8 @@ namespace TinyNet {
     }
 
     void TcpAcceptor::handle_accept() {
-        Endpoint* ep = nullptr;
-        while (listener_->fd() >= 0 && ((ep = endpoint_.accept()) != nullptr)) {
+        EndpointPtr ep = nullptr;
+        while (channel_->fd() >= 0 && ((ep = endpoint_.accept()) != nullptr)) {
             ep->add_fd_flag(FD_CLOEXEC);
 
         }

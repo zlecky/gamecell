@@ -31,8 +31,8 @@ namespace TinyNet {
         return addr_;
     }
 
-    Endpoint::Endpoint() : socket_(INVALID_SOCKET) {
-
+    Endpoint::Endpoint(int fd/* = INVALID_SOCKET*/) {
+        this->fd(fd);
     }
 
     Endpoint::~Endpoint() {
@@ -55,7 +55,7 @@ namespace TinyNet {
         return ::listen(socket_, backlog);
     }
 
-    Endpoint* Endpoint::accept() {
+    EndpointPtr Endpoint::accept() {
         struct sockaddr_in sin;
         socklen_t sin_len = sizeof(sin);
 
@@ -63,10 +63,7 @@ namespace TinyNet {
         if (ret < 0)
             return nullptr;
 
-        auto* ep = new Endpoint();
-        ep->fd(ret);
-
-        return ep;
+        return std::make_shared<Endpoint>(ret);
     }
 
     int Endpoint::connect(uint16_t port, uint32_t addr) {
@@ -78,7 +75,7 @@ namespace TinyNet {
     }
 
     int Endpoint::close() {
-        if (!this->is_valid())
+        if (!this->valid())
             return 0;
 
         int ret = ::close(socket_);
@@ -118,17 +115,17 @@ namespace TinyNet {
 
     int Endpoint::set_reuse_addr(bool reuse) {
         int val = reuse ? 1 : 0;
-        return ::setsockopt(socket_, SOL_SOCKET, SO_REUSEADDR, (char*)val, sizeof(val));
+        return ::setsockopt(socket_, SOL_SOCKET, SO_REUSEADDR, (void*)&val, sizeof(val));
     }
 
     int Endpoint::set_reuse_port(bool reuse) {
         int val = reuse ? 1 : 0;
-        return ::setsockopt(socket_, SOL_SOCKET, SO_REUSEPORT, (char*)val, sizeof(val));
+        return ::setsockopt(socket_, SOL_SOCKET, SO_REUSEPORT, (void*)&val, sizeof(val));
     }
 
     int Endpoint::set_keepalive(bool keepalive) {
         int val = keepalive ? 1 : 0;
-        return ::setsockopt(socket_, SOL_SOCKET, SO_KEEPALIVE, (char*)val, sizeof(val));
+        return ::setsockopt(socket_, SOL_SOCKET, SO_KEEPALIVE, (void*)&val, sizeof(val));
     }
 
     int Endpoint::add_fd_flag(int flag) {
