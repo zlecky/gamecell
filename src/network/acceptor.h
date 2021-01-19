@@ -24,14 +24,15 @@ namespace TinyNet {
 
     public:
         Address addr() { return addr_; }
+        Endpoint endpoint() { return endpoint_; }
         EventContextPtr context() { return context_; }
 
     protected:
         void handle_accept();
 
     private:
-        EventContextPtr context_  = nullptr;
-        EventContextBasePtr base_ = nullptr;
+        EventContextPtr context_      = nullptr;
+        EventContextBasePtr contexts_ = nullptr;
 
         Address addr_;
         Endpoint endpoint_;

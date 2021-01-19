@@ -19,7 +19,8 @@ namespace TinyNet {
     typedef EventContextBase* EventContextBasePtr;
 
     class TcpConn;
-    typedef TcpConn* TcpConnPtr;
+    //typedef TcpConn* TcpConnPtr;
+    typedef std::shared_ptr<TcpConn> TcpConnPtr;
     typedef std::function<void(const TcpConnPtr&)> TcpCallback;
 
     class Slice;

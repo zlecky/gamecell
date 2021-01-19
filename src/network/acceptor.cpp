@@ -20,7 +20,7 @@ namespace TinyNet {
     }
 
     TcpAcceptor::TcpAcceptor(EventContextBasePtr base, const std::string& ip, const std::string& port)
-        : base_(base), context_(base->context()), addr_(ip, port) {
+        : contexts_(base), context_(base->context()), addr_(ip, port) {
 
     }
 
@@ -64,6 +64,33 @@ namespace TinyNet {
         while (channel_->fd() >= 0 && ((ep = endpoint_.accept()) != nullptr)) {
             ep->add_fd_flag(FD_CLOEXEC);
 
+            auto* ct = contexts_->context();
+
+            auto create_tcp_conn = [=]() {
+                TcpConnPtr conn = std::make_shared<TcpConn>();
+                if (nullptr == conn)
+                    return;
+
+                conn->attach(ct, ep);
+
+                if (state_cb_ != nullptr) {
+                    conn->on_state(state_cb_);
+                }
+
+                if (read_cb_ != nullptr) {
+                    conn->on_read(read_cb_);
+                }
+
+                if (msg_cb_ != nullptr) {
+                    //TODO
+                }
+            };
+
+            if (ct == context()) {
+                create_tcp_conn();
+            } else {
+                ct->trigger(std::move(create_tcp_conn));
+            }
         }
     }
 }

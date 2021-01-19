@@ -26,6 +26,7 @@ namespace TinyNet {
 
     public:
         void loop_once(int wait_ms) override;
+
         void add(ChannelPtr ch) override;
         void remove(ChannelPtr ch) override;
         void update(ChannelPtr ch) override;
@@ -46,6 +47,25 @@ namespace TinyNet {
         }
 
         ::close(fd_);
+    }
+
+    void KqueuePoller::loop_once(int wait_ms) {
+        struct timespec timeout{wait_ms / 1000, (wait_ms % 1000) * 1000 * 1000};
+        last_active_ = ::kevent(fd_, nullptr, 0, active_events_, kMaxEvents, &timeout);
+        while (--last_active_ >= 0) {
+            struct kevent& ke = active_events_[last_active_];
+
+            auto ch = static_cast<Channel*>(ke.udata);
+            if (ch != nullptr) {
+                if (!(ke.flags & EV_EOF) && ch->is_writable()) {
+                    ch->handle_write();
+                } else if ((ke.flags & EV_EOF) || ch->is_readable()) {
+                    ch->handle_read();
+                } else {
+                    //TODO
+                }
+            }
+        }
     }
 
     void KqueuePoller::add(ChannelPtr ch) {
@@ -91,25 +111,6 @@ namespace TinyNet {
 
         struct timespec now{0, 0};
         int r = ::kevent(fd_, ev, idx, nullptr, 0, &now);
-    }
-
-    void KqueuePoller::loop_once(int wait_ms) {
-        struct timespec timeout{wait_ms / 1000, (wait_ms % 1000) * 1000 * 1000};
-        last_active_ = ::kevent(fd_, nullptr, 0, active_events_, kMaxEvents, &timeout);
-        while (--last_active_ >= 0) {
-            struct kevent& ke = active_events_[last_active_];
-
-            auto ch = static_cast<Channel*>(ke.udata);
-            if (ch != nullptr) {
-                if (!(ke.flags & EV_EOF) && ch->is_writable()) {
-                    ch->handle_write();
-                } else if ((ke.flags & EV_EOF) || ch->is_readable()) {
-                    ch->handle_read();
-                } else {
-                    //TODO
-                }
-            }
-        }
     }
 
     EventPoller* EventPoller::create_poller() {

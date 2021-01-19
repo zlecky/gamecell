@@ -39,6 +39,31 @@ namespace TinyNet {
         int wakeup_fds_[2] = {0};
         TaskQueue<Callback> tasks_;
     };
+
+    class EventContexts : public EventContextBase {
+    public:
+        EventContexts(size_t num) : id_(0), contexts_(num) {};
+        virtual ~EventContexts() = default;
+
+    public:
+        EventContextPtr context() override {
+            int id = id_++;
+            return &contexts_[id % contexts_.size()];
+        }
+
+    public:
+        void loop();
+
+        void exit() {
+            for (auto& ct : contexts_) {
+                ct.exit();
+            }
+        }
+
+    private:
+        std::atomic<int> id_;
+        std::vector<EventContext> contexts_;
+    };
 }
 
 #endif//__EVENT_CONTEXT_H__

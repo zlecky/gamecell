@@ -20,19 +20,34 @@ namespace TinyNet {
         };
 
     public:
-        EventContextPtr context() const { return context_; };
-        State state() const { return state_; }
-
-    public:
         TcpConn();
         virtual ~TcpConn();
 
+    public:
+        void attach(EventContextPtr ct, EndpointPtr ep);
+
+        void on_read(const TcpCallback& cb);
+        void on_state(const TcpCallback& cb);
+
+    public:
+        void handle_read(const TcpConnPtr conn);
+        void handle_write(const TcpConnPtr conn);
+
+    public:
+        EventContextPtr context() const { return context_; };
+        State state() const { return state_; }
+
     private:
         EventContextPtr context_;
+        EndpointPtr endpoint_;
+        ChannelPtr channel_;
         State state_;
+
+        TcpCallback read_cb_;
+        TcpCallback state_cb_;
+
         Buffer in_;
         Buffer out_;
-
     };
 }
 

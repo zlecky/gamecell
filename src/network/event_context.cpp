@@ -70,4 +70,23 @@ namespace TinyNet {
     void EventContext::trigger(const Callback& cb) {
         this->trigger(Callback(cb));
     }
+
+    void EventContexts::loop() {
+        size_t size = contexts_.size();
+        if (0 == size)
+            return;
+
+        std::vector<std::thread> ths(size - 1);
+        for (int i = 0; i < size - 1; ++i) {
+            std::thread th([this, i]() { contexts_[i].loop(); });
+
+            ths[i].swap(th);
+        }
+
+        contexts_.back().loop();
+
+        for (int i = 0; i < size - 1; ++i) {
+            ths[i].join();
+        }
+    }
 }
