@@ -1,5 +1,7 @@
 #include "tcp_connection.h"
 
+#include "buffer.h"
+#include "codec.h"
 #include "channel.h"
 #include "event_poller.h"
 
@@ -32,6 +34,27 @@ namespace TinyNet {
 
     void TcpConn::on_state(const TcpCallback& cb) {
         state_cb_ = cb;
+    }
+
+    void TcpConn::on_msg(CodecBasePtr codec, const MsgCallback& cb) {
+        codec_.reset(codec);
+
+        this->on_read([cb](const TcpConnPtr& conn) {
+            int ret = 0;
+
+            do {
+                Slice msg;
+                ret = conn->codec_->tryDecode(conn->in(), msg);
+                if (ret < 0) {
+                    conn->channel_->close();
+                    break;
+                } else if (ret > 0) {
+                    cb(conn, msg);
+                    conn->in().consume(ret);
+                }
+
+            } while (ret > 0);
+        });
     }
 
     void TcpConn::handle_read(const TcpConnPtr conn) {

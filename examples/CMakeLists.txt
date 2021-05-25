@@ -53,7 +53,7 @@ else(RDKAFKA_FOUND)
 endif(RDKAFKA_FOUND)
 
 # tinynet
-add_executable(net_example network_example.cpp)
+add_executable(net_example network_srv_example.cpp)
 target_link_libraries(net_example tinynet)
 
 # taskpool

@@ -5,19 +5,19 @@
  *  @date    2020/12/25
  */
 
-#ifndef __POLLER_BASE_H__
-#define __POLLER_BASE_H__
+#ifndef __EVENT_POLLER_H__
+#define __EVENT_POLLER_H__
 
 #include <poll.h>
 #include <sys/types.h>
 
 #include <atomic>
+#include <memory>
 
-#include "util.h"
+#include "types.h"
+#include "utils.h"
 
 namespace TinyNet {
-    class Channel;
-
     /// Max event num
     const int kMaxEvents  = 2000;
     /// Read event
@@ -26,28 +26,31 @@ namespace TinyNet {
     const int kWriteEvent = POLLOUT;
 
     /**
-     * Base poller class.
+     * Event poller class.
      */
-    class BasePoller : public Noncopyable {
+    class EventPoller : private Noncopyable {
     public:
-        BasePoller() : last_active_(-1) {
+        static EventPoller* create_poller();
+
+    public:
+        EventPoller() : last_active_(-1) {
             static std::atomic<int64_t> id(0);
             id_ = ++id;
         }
 
-        virtual ~BasePoller() = default;
+        virtual ~EventPoller() = default;
 
     public:
+        virtual void add(ChannelPtr ch) = 0;
+        virtual void remove(ChannelPtr ch) = 0;
+        virtual void update(ChannelPtr ch) = 0;
+
         virtual void loop_once(int wait_ms) = 0;
-        virtual void add_channel(Channel* ch) = 0;
-        virtual void remove_channel(Channel* ch) = 0;
-        virtual void update_channel(Channel* ch) = 0;
 
     public:
         int64_t id_;
         int last_active_;
     };
-
 }
 
-#endif//__POLLER_BASE_H__
+#endif//__EVENT_POLLER_H__
