@@ -1,0 +1,76 @@
+@startuml
+|FRunnableThread|
+
+#AAAAAA:FRunnableThread::Create(Runnable, TEXT("Thread-01"));
+-> Create runnable thread and bind to runnable object;
+
+:FRunnableThread* NewThread = nullptr;
+
+if (FPlatformProcess::SupportsMultithreading) then
+  -[#blue]-> yes;
+  :NewThread = FPlatformProcess::CreateRunnableThread();
+
+  note left
+    根据不同平台创建线程对象
+    例如FRunnableThreadApple
+  end note
+
+else
+    if (GetSingleThreadInterface()) then
+        -[#blue]-> yes;
+        :NewThread = new FFakeThread;
+    endif
+endif
+
+if (NewThread != nullptr) then
+    -[#blue]-> yes;
+    :FRunnableThread::SetupCreatedThread();
+
+    #AAAAAA:bool bIsValid = FRunnableThread::CreateInternal();
+
+    fork
+       #AAAAAA:FRunnableThreadPThread::CreateInternal();
+       :FRunnableThreadPThread::SpinPthread(p_thread& Thread, _ThreadProc, ...);
+       :FRunnableThreadPThread::SetThreadAttr();
+       :FRunnableThreadPThread::CreateThreadName();
+       :pthread_create(..., _ThreadProc, ...);
+     fork again
+       :FRunnableThreadWin::CreateInternal();
+       :...;
+       detach
+     fork again
+       :...;
+       detach
+     endfork
+
+    if (bIsValid) then
+        :delete NewThread;
+    else
+        -[#blue]-> yes;
+        :FRunnableThread::PostCreate;
+
+        |_ThreadProc|
+        #AAAAAA:static void *STDCALL _ThreadProc(void *pThis);
+
+        #AAAAAA:FThreadManager::Get().AddThread(ThisThread->ThreadID, ThisThread);
+        :FRunnableThreadPThread::PreRun();
+        :FRunnableThreadPThread::Run();
+            fork
+                if (FRunnable::Init()) then
+                    -[#blue]-> yes;
+                    repeat
+                        #AAAAAA:FRunnable::Run();
+                    repeatwhile
+
+                    :FRunnable::Exit();
+                else
+                endif
+     endfork
+        :FRunnableThreadPThread::PostRun();
+        |FRunnableThread|
+    endif
+endif
+
+stop
+
+@enduml
