@@ -1,0 +1,152 @@
+@startuml
+
+package "TaskGraph" {
+    package "TaskGraphInterface" {
+        interface FTaskGraphInterface << Interface for task graph system >> #White {
+            - friend class FBaseGraphTask;
+
+            + {method} static void Startup(int32 NumThreads); // Explicit start call for the system.
+            + {method} static void Shutdown(); // Explicit start call to shutdown the system.
+            + {method} static FTaskGraphInterface& Get(); // Singleton for the system.
+
+            - {method} virtual void QueueTask(...) = 0;
+        }
+
+        class FTaskGraphImplementation #White {
+            - {field} int32 NumThreads;
+            - {field} int32 NumNameThreads;
+            - {field} FWorkThread WorkerThreads[MAX_THREADS];
+            - {field} NamedThreads::Type LastExternalThread;
+
+            .. // For priority thread. ..
+            - {field} int32 NumTaskThreadSets;
+            - {field} int32 NumTaskThreadsPerSet;
+            - {field} bool bCreatedHiPriorityThreads;
+            - {field} bool bCreatedBackgroundPriorityThreads;
+
+            .. // Thread TLS to store FWorkerThread* pointer. ..
+            - {field} uint32 PerThreadIDTLSSlot;
+
+            .. // The incoming task for FTaskThreadAnyThread. ..
+            - {field} FStallingTaskQueue<FBaseGraphTask, PLATFORM_CACHE_LINE_SIZE, 2> IncomingAnyThreadTasks[MAX_THREAD_PRIORITIES];
+            ____
+
+            + {method} FTaskGraphImplementation();
+            + {method} ~FTaskGraphImplementation();
+        }
+
+        enum EThreadPriority #White {
+            TPri_Normal  = 0,
+            // ...
+            TPri_Highest = 3,
+            TPri_Lowest  = 4,
+            // ...
+        }
+
+        FTaskGraphInterface <|.. FTaskGraphImplementation
+    }
+
+    package "WorkThread" {
+        class FWorkThread #White {
+            + {field} FTaskThreadBase* TaskGraphWorker;
+            + {field} FRunnableThread*	RunnableThread;
+        }
+    }
+
+    package {
+        class FTaskThreadBase #LightGray {
+            # {field} TArray<FBaseGraphTask*> NewTasks; // Array of tasks for this task thread.
+
+            # {field} ENamedThreads::Type ThreadId; // Index of thread.
+            # {field} uint32 PerThreadIDTLSSlot; // TLS to store the owning FWorkerThread pointer.
+
+            # {field} FWorkerThread* OwnerWorker; // Back pointer to the owning FWorkerThread.
+
+            __ // FRunnable API __
+            + {method} virtual void Tick() override;
+            + {method} virtual FSingleThreadRunnable* GetSingleThreadInterface() override;
+
+            __ // SingleThreaded API __
+            + {method} virtual bool Init() override;
+            + {method} virtual uint32 Run() override;
+            + {method} virtual void Stop() override;
+            + {method} virtual void Exit() override;
+
+            __  __
+            + {method} Setup(ENamedThreads::Type, uint32, FWorkerThread*);
+        }
+
+        class FNamedTaskThread #White {
+            - {field} FStallingTaskQueue<FBaseGraphTask, PLATFORM_CACHE_LINE_SIZE, 2> StallQueue;
+        }
+
+        class FTaskThreadAnyThread #White {
+
+        }
+
+        FTaskThreadBase <|.. FNamedTaskThread
+        FTaskThreadBase <|.. FTaskThreadAnyThread
+    }
+
+    package "GraphTask" {
+        class FBaseGraphTask << Base class for all tasks >> #White {
+
+        }
+
+        class FConstructor #White {
+
+        }
+
+        class TGraphTask << A template for user defined task >> #White {
+
+            - {field} TRefCountPtr<class FGraphEvent> Subsequents;
+            - {field} TAlignedBytes<sizeof(TTask),alignof(TTask)> TaskStorage;
+        }
+
+        class TTask #White {
+
+        }
+
+        class FGraphEvent << A graph event is a prerequisite for each of its subsequents >> #White {
+            - {field} FGraphEventArray EventsToWaitFor;
+            - {field} TClosableLockFreePointerListUnorderedSingleConsumer<FBaseGraphTask, 0> SubsequentList;
+
+
+            + {method} FGraphEventRef CreateGraphEvent();
+
+        }
+
+        FBaseGraphTask <|.. TGraphTask
+        TTask "1" *-- "1" TGraphTask : contains
+    }
+
+    FWorkThread "m" *-- "1" FTaskGraphImplementation: contains
+    FTaskThreadBase "1" *-- "1" FWorkThread : contains
+
+    FBaseGraphTask "m" *-- "1" FTaskThreadBase : contains
+    FBaseGraphTask "m" *-- "1" FNamedTaskThread : contains
+}
+
+package "Runnable" {
+    package "Runnable Object" {
+        class FRunnable #LightGray {
+
+        }
+
+        class FSingleThreadRunnable #LightGray {
+
+        }
+    }
+
+    package "Runnable Thread" {
+        class FRunnableThread #LightGray {
+
+        }
+    }
+}
+
+FRunnable <|.. FTaskThreadBase
+FSingleThreadRunnable <|.. FTaskThreadBase
+FRunnableThread "1" *-- "1" FWorkThread : contains
+
+@enduml

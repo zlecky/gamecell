@@ -1,0 +1,233 @@
+@startuml
+'IQueuedWork
+|IQueuedWork|
+
+start
+
+fork
+    :FAutoDeleteAsyncTask;
+    fork
+        #Lavender:FAutoDeleteAsyncTask::StartSynchronousTask();
+    fork again
+        #Lavender:FAutoDeleteAsyncTask::StartBackgroundTask();
+    endfork
+
+    :FAutoDeleteAsyncTask::Start(bool bForceSynchronous, FQueuedThreadPool* InQueuedPool);
+
+    if (bForceSynchronous) then
+        ->yes;
+
+        :FAutoDeleteAsyncTask::DoWork();
+        partition {
+            #AAAAAA:TTask::DoWork();
+            #AAAAAA:delete this;
+        }
+        kill
+    else
+        -[#green]->no;
+    endif
+fork again
+    :FAsyncTask;
+    fork
+        #Lavender:FAsyncTask::StartSynchronousTask();
+    fork again
+        #Lavender:FAsyncTask::StartBackgroundTask();
+    endfork
+
+    :FAsyncTask::Start(bool bForceSynchronous, FQueuedThreadPool* InQueuedPool);
+
+    if (bForceSynchronous) then
+        ->yes;
+        :FAsyncTask::DestroyEvent();
+        :FAsyncTask::DoWork();
+        partition {
+            #AAAAAA:TTask::DoWork();
+        }
+
+        kill
+    else
+        -[#green]->no;
+        partition {
+            :DoneEvent = FPlatformProcess::GetSynchEventFromPool(true);
+            :DoneEvent->Reset();
+        }
+        -[#green]->no;
+    endif
+endfork
+
+-[#green]->;
+#LightCyan:FQueuedThreadPool::AddQueuedWork(this);
+note right
+    外部调用时添加任务，获取一个*排队线程*
+end note
+-[#green]->;
+
+'FQueuedThreadPool
+|FQueuedThreadPool|
+start
+
+if (0 == QueuedThreads.Num()) then
+    :QueuedWork.Add(InQueuedWork);
+    kill
+else
+    -[#green]->no;
+
+    partition {
+        :Thread = QueuedThreads[QueuedThreads.Num() - 1];
+        :QueuedThreads.RemoveAt(ThreadIndex, 1, false);
+
+        #AAAAAA:Thread->DoWork(InQueuedWork);
+        partition {
+            :QueuedWork = InQueuedWork;
+            #Gold:DoWorkEvent->Trigger();
+        }
+    }
+endif
+
+stop
+'FQueuedThreadPool Stop
+
+'FQueuedThread
+start
+|FQueuedThread|
+
+:FQueuedThread::Run();
+
+while (!TimeToDie.Load(EMemoryOrder::Relaxed))
+    -[#green]->yes;
+
+    partition {
+        #Gold:DoWorkEvent->Wait();
+        note left
+            线程阻塞，等待事件唤醒
+        end note
+
+        :IQueuedWork* LocalQueuedWork = QueuedWork;
+        :QueuedWork = nullptr;;
+
+        partition {
+            while (LocalQueuedWork)
+                -[#green]->yes;
+
+                #AAAAAA:LocalQueuedWork->DoThreadedWork();
+                partition {
+                    fork
+                        :FAsyncTask::DoThreadedWork();
+                        partition {
+                            :FAsyncTask::DoWork();
+                            partition {
+                                #AAAAAA:TTask::DoWork();
+                            }
+
+                            :FAsyncTask::FinishThreadedWork();
+                            partition {
+                                #Plum:DoneEvent->Trigger();;
+                            }
+                        }
+                    fork again
+                        :FAutoDeleteAsyncTask::DoThreadedWork();
+                        partition {
+                            :FAutoDeleteAsyncTask::DoWork;
+                            partition {
+                                #AAAAAA:TTask::DoWork();
+                                #AAAAAA:delete this;
+                            }
+                        }
+                    endfork
+                }
+
+                #LightCyan:LocalQueuedWork = OwningThreadPool->ReturnToPoolOrGetNextJob(this);
+                note right
+                    某一线程执行完任务，获取下一*排队任务*
+                end note
+            endwhile
+        }
+    }
+endwhile
+
+
+stop
+'FQueuedThread Stop
+
+'IQueuedWork
+start
+|IQueuedWork|
+fork
+    #Lavender:void FAsyncTask::EnsureCompletion();
+    note left
+      background模式下:
+      1. 若线程池还没处理，从线程池拿出，调用者线程处理
+      2. 若线程池正在处理中，等待线程池处理完成
+      ====
+      synchronous模式下:
+      调用者线程尚未处理的(即:没有调用StartSynchronousTask())，立即处理
+    end note
+
+    if (QueuedPool) then
+        -[#green]->yes;
+
+        if (QueuedPool->RetractQueuedWork(this)) then
+            -[#green]->yes;
+
+            partition {
+                :DoSyncCompletion = false;
+                #AAAAAA:FAsyncTask::DoWork();
+                :FAsyncTask::FinishThreadedWork();
+                :QueuedPool = 0;
+            }
+        endif
+    else
+        ->no;
+
+        if (WorkNotFinishedCounter.GetValue()) then
+            -[#green]->yes;
+            partition {
+                #AAAAAA:FAsyncTask::DoWork();
+            }
+        endif
+    endif
+
+    if (DoSyncCompletion) then
+        -[#green]->yes;
+
+        :FAsyncTask::SyncCompletion();
+        partition {
+            if (QueuedPool) then
+                -[#green]->yes;
+
+                #Plum:DoneEvent->Wait();
+            endif
+        }
+    endif
+fork again
+    #Lavender:bool FAsyncTask::WaitCompletionWithTimeout(float TimeLimitSeconds);
+    note left
+        等待若干时间，直到线程池处理完成
+    end note
+
+    if (QueuedPool) then
+        -[#green]->yes;
+
+        #Plum:if (DoneEvent->Wait(Ms)) then
+            partition {
+                :QueuedPool = 0;
+            }
+        endif
+
+    endif
+
+fork again
+    #Lavender:bool FAsyncTask::Cancel();
+    note left
+        若线程池没开始处理任务，则取消
+    end note
+
+    partition {
+        :...;
+    }
+endfork
+
+stop
+'IQueuedWork Stop
+
+@enduml

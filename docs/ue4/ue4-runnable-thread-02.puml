@@ -1,92 +1,76 @@
 @startuml
+|FRunnableThread|
 
-' Runnable objects
-interface FRunnable << Interface for "runnable" objects >> #LightGray {
-    + {method} virtual bool Init()
-    + {method} virtual uint32 Run() = 0
-    + {method} virtual void Exit()
+#AAAAAA:FRunnableThread::Create(Runnable, TEXT("Thread-01"));
+-> Create runnable thread and bind to runnable object;
 
-    + {method} virtual class FSingleThreadRunnable* GetSingleThreadInterface()
-}
+:FRunnableThread* NewThread = nullptr;
 
-interface FSingleThreadRunnable << Interface for ticking "runnable" objects >> #LightGray {
-    + {method} virtual void Tick() = 0;
-}
+if (FPlatformProcess::SupportsMultithreading) then
+  -[#blue]-> yes;
+  :NewThread = FPlatformProcess::CreateRunnableThread();
 
-class MyFRunnable #LightGray {
-    + {method} virtual bool Init() override
-    + {method} virtual uint32 Run() override
-    + {method} virtual void Exit() override
-}
+  note left
+    根据不同平台创建线程对象
+    例如FRunnableThreadApple
+  end note
 
-class FTcpListener #LightGray {
-    + {method} virtual bool Init() override
-    + {method} virtual uint32 Run() override
-    + {method} virtual void Exit() override
-}
+else
+    if (GetSingleThreadInterface()) then
+        -[#blue]-> yes;
+        :NewThread = new FFakeThread;
+    endif
+endif
 
-' Runnable threads.
-interface FRunnableThread << Interface for "runnable" threads >> #AAAAA {
-    # {field} FRunnable* Runnable;
+if (NewThread != nullptr) then
+    -[#blue]-> yes;
+    :FRunnableThread::SetupCreatedThread();
 
-    + {method} static FRunnableThread* Create(FRunnable* InRunnable, ...)
+    #AAAAAA:bool bIsValid = FRunnableThread::CreateInternal();
 
-    + {method} virtual bool CreateInternal() = 0
-}
+    fork
+       #AAAAAA:FRunnableThreadPThread::CreateInternal();
+       :FRunnableThreadPThread::SpinPthread(p_thread& Thread, _ThreadProc, ...);
+       :FRunnableThreadPThread::SetThreadAttr();
+       :FRunnableThreadPThread::CreateThreadName();
+       :pthread_create(..., _ThreadProc, ...);
+     fork again
+       :FRunnableThreadWin::CreateInternal();
+       :...;
+       detach
+     fork again
+       :...;
+       detach
+     endfork
 
-class FFakeThread <<Fake thread created when multi-threading is disabled.>> #AAAAA {
-    + {method} virtual void Tick() override // Tick one time per frame.
+    if (bIsValid) then
+        :delete NewThread;
+    else
+        -[#blue]-> yes;
+        :FRunnableThread::PostCreate;
 
-    # {field} FSingleThreadRunnable* SingleThreadRunnable;
-}
+        |_ThreadProc|
+        #AAAAAA:static void *STDCALL _ThreadProc(void *pThis);
 
-class FRunnableThreadPThread #AAAAA {
-    + {method} virtual bool CreateInternal() override
-}
+        #AAAAAA:FThreadManager::Get().AddThread(ThisThread->ThreadID, ThisThread);
+        :FRunnableThreadPThread::PreRun();
+        :FRunnableThreadPThread::Run();
+            fork
+                if (FRunnable::Init()) then
+                    -[#blue]-> yes;
+                    repeat
+                        #AAAAAA:FRunnable::Run();
+                    repeatwhile
 
-class FRunnableThreadWin #AAAAA {
-    + {method} virtual bool CreateInternal() override
-}
+                    :FRunnable::Exit();
+                else
+                endif
+     endfork
+        :FRunnableThreadPThread::PostRun();
+        |FRunnableThread|
+    endif
+endif
 
-class FRunnableThreadApple #AAAAA {
-
-}
-
-' Thread manager.
-class FThreadManager #DarkGray {
-    + {field} TMap<uint32, class FRunnableThread*, TInlineSetAllocator<256>> Threads
-
-    + {method} void AddThread(uint32 ThreadId, class FRunnableThread* Thread)
-    + {method} void RemoveThread(class FRunnableThread* Thread)
-
-    + {method} void Tick() // Ticks all fake threads and their runnable objects.
-}
-
-' Runnable objects
-class FUdpMessageProcessor #LightGray {
-    + {method} virtual bool Init() override
-    + {method} virtual uint32 Run() override
-    + {method} virtual void Exit() override
-
-    + {method} virtual void Tick() override
-    + {method} virtual class FSingleThreadRunnable* GetSingleThreadInterface() override
-}
-
-' Runnable objects
-FRunnable "1" *-- "1" FRunnableThread : contains
-
-FRunnable <|-- FTcpListener
-FRunnable <|-- MyFRunnable
-FRunnable <|-- FUdpMessageProcessor
-FSingleThreadRunnable <|-- FUdpMessageProcessor
-
-' Runnable threads
-FRunnableThread <|-- FFakeThread
-FRunnableThread <|-- FRunnableThreadWin
-FRunnableThread <|-- FRunnableThreadPThread
-FRunnableThreadPThread <|-- FRunnableThreadApple
-
-FRunnableThread "m" *-- "1" FThreadManager : contains
-FSingleThreadRunnable "1" *-- "1" FFakeThread : contains
+stop
 
 @enduml

@@ -1,0 +1,98 @@
+@startuml
+|Init|
+start
+
+#White:FEngineLoop::PreInit;
+#White:FEngineLoop::PreInitPreStartupScreen;
+#White:...;
+
+#Lavender:FTaskGraphInterface::Startup(FPlatformMisc::NumberOfCores());
+fork
+    #LightCyan:new FTaskGraphImplementation(NumThreads);
+
+    partition FTaskGraphImplementation::FTaskGraphImplementation(int32) {
+        partition NumThreads {
+            #White:a->NumTaskThreads = Max(Min(NumberOfCores - 1, (4 or 16)), 1)
+            b->NumTaskThreadSets = 1 or 3
+            c->NumNamedThreads = 5 or 6;
+
+            #White:NumThreads = Max(Min(a * b + c, MAX_THREADS), c + 1);
+            #White:NumThreads = Min(NumThreads, a * b + c);
+        }
+
+        partition "TaskGraphWorker" {
+            #Gold:int32 ThreadIndex = 0;
+            while (ThreadIndex < NumThreads)
+                #White:ThreadIndex++;
+
+                if (!WorkerThreads[ThreadIndex].bAttached) then
+                    -[#green]->yes;
+
+                    if (ThreadIndex >= NumNamedThreads) then
+                        -[#green]->yes;
+
+                        #LightGray:WorkerThreads[ThreadIndex].TaskGraphWorker = new FTaskThreadAnyThread(...);
+                    else
+                        ->no;
+
+                        #LightGray:WorkerThreads[ThreadIndex].TaskGraphWorker = new FNamedTaskThread(...);
+                    endif
+
+                    #LightGray:WorkerThreads[ThreadIndex].TaskGraphWorker->Setup(ENamedThreads::Type(ThreadIndex), PerThreadIDTLSSlot, &WorkerThreads[ThreadIndex]);
+                else
+                    ->no;
+                endif
+            endwhile
+        }
+
+        #LightCyan:TaskGraphImplementationSingleton = this;
+
+        partition "RunnableThread" {
+            #Gold:ThreadIndex = NumNamedThreads;
+            while (ThreadIndex < NumThreads)
+                #White:// 线程优先级(High/Low/Normal)，与索引有关
+                int32 Priority = ThreadIndexToPriorityIndex(ThreadIndex);
+
+                #White:...;
+
+                if (FForkProcessHelper::IsForkedMultithreadInstance() && GAllowTaskGraphForkMultithreading) then
+                    -[#green]->yes;
+
+                    #LightGray:WorkerThreads[ThreadIndex].RunnableThread = FForkProcessHelper::CreateForkableThread(...);
+                else
+                    ->no;
+
+                    #LightGray:WorkerThreads[ThreadIndex].RunnableThread = FRunnableThread::Create(...);
+                endif
+
+                #White:WorkerThreads[ThreadIndex].bAttached = true;
+
+                #White:ThreadIndex++;
+            endwhile
+        }
+    }
+
+endfork
+
+#Lavender:FTaskGraphInterface::Get().AttachToThread(ENamedThreads::GameThread);
+fork
+    #White:FTaskGraphImplementation::AttachToThread(ENamedThreads::GameThread);
+
+    partition "FTaskGraphImplementation::AttachToThread" {
+        #White:CurrentThread = ENamedThreads::GetThreadIndex(CurrentThread);
+        #White:...;
+        #LightGray:Thread(CurrentThread).InitializeForCurrentThread();
+    }
+endfork
+
+#White:...;
+
+stop
+|Init|
+
+|Use|
+start
+
+stop
+|Use|
+@enduml

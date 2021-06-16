@@ -1,0 +1,288 @@
+@startuml
+
+'泛化->[子类继承父类所有细节]
+'<|--
+
+'实现->[子类实现接口]
+'<|..
+
+'依赖->[最弱的一种关联方式]
+'<..
+
+'White
+'Lavender
+'LightCyan
+'AntiqueWhite
+'Thistle
+
+'LightGray
+
+' Runnable
+package Runnable {
+    package "Runnable-Object" {
+        interface FRunnable << Interface for "runnable" objects >> #White {
+            + {method} virtual bool Init();
+            + {method} virtual uint32 Run() = 0;
+            + {method} virtual void Exit();
+
+            + {method} virtual FSingleThreadRunnable* GetSingleThreadInterface();
+        }
+
+        interface FSingleThreadRunnable << Interface for ticking "runnable" objects >> #White {
+            + {method} virtual void Tick() = 0;
+        }
+
+        class MyFRunnable #White {
+            + {method} virtual bool Init() override;
+            + {method} virtual uint32 Run() override;
+            + {method} virtual void Exit() override;
+        }
+
+        class FTcpListener #White {
+            + {method} virtual bool Init() override;
+            + {method} virtual uint32 Run() override;
+            + {method} virtual void Exit() override;
+        }
+
+        FRunnable <|.. FTaskThreadBase
+        FRunnable <|.. MyFRunnable
+        FRunnable <|.. FTcpListener
+        FSingleThreadRunnable <|.. FTaskThreadBase
+    }
+
+    package "Runnable-Thread" {
+        interface FRunnableThread << Interface for "runnable" threads >> #White {
+            # {field} FRunnable* Runnable;
+
+            + {method} virtual void Tick(); // Tick one time per frame.
+            + {method} static FRunnableThread* Create(FRunnable* InRunnable, ...);
+
+            + {method} virtual bool CreateInternal() = 0;
+        }
+
+        class FFakeThread <<Fake thread created when multi-threading is disabled.>> #White {
+            + {method} virtual void Tick() override; // Tick one time per frame.
+            + {method} virtual bool CreateInternal(FRunnable* InRunnable, ...) override;
+
+            # {field} FSingleThreadRunnable* SingleThreadRunnable;
+        }
+
+        class FRunnableThreadPThread #White {
+            + {method} virtual bool CreateInternal(FRunnable* InRunnable, ...) override;
+        }
+
+        class FRunnableThreadWin #White {
+            + {method} virtual bool CreateInternal(FRunnable* InRunnable, ...) override;
+        }
+
+        class FRunnableThreadApple #White {
+
+        }
+
+        FRunnableThread <|.. FFakeThread
+        FRunnableThread <|.. FRunnableThreadWin
+        FRunnableThread <|.. FRunnableThreadPThread
+        FRunnableThreadPThread <|.. FRunnableThreadApple
+    }
+
+    package "Thread-Manager" {
+        class FThreadManager #White {
+            + {field} TMap<uint32, class FRunnableThread*, TInlineSetAllocator<256>> Threads
+
+            + {method} void AddThread(uint32 ThreadId, class FRunnableThread* Thread)
+            + {method} void RemoveThread(class FRunnableThread* Thread)
+
+            + {method} void Tick() // Ticks all fake threads and their runnable objects.
+        }
+    }
+
+    FRunnable "1" *-- "1" FRunnableThread : contains
+    FSingleThreadRunnable "1" *-- "1" FFakeThread : contains
+    FRunnableThread "m" *-- "1" FThreadManager : contains
+}
+
+' AsyncTask
+package AsyncTask {
+    package "QueuedThreadPool" {
+        interface FQueuedThreadPool << Interface for queued thread pool >> #White {
+            + {method} static FQueuedThreadPool* Allocate();
+
+            + {method} virtual bool Create(uint32 InNumQueuedThreads, ...) = 0;
+            + {method} virtual void Destroy() = 0;
+
+            + {method} virtual void AddQueuedWork(IQueuedWork* InQueuedWork) = 0;
+            + {method} virtual void RetractQueuedWork(IQueuedWork* InQueuedWork) = 0;
+        }
+
+        class FQueuedThreadPoolBase << Implement for the FQueuedThreadPool >> #White {
+            # {field} TArray<IQueuedWork*> QueuedWork;            // 待执行任务
+            # {field} TArray<FQueuedThread*> QueuedThreads; // 可用线程
+            # {field} TArray<FQueuedThread*> AllThreads;          // 所有线程
+
+            + {method} virtual bool Create(uint32 InNumQueuedThreads, ...);
+            + {method} virtual void Destroy();
+
+            + {method} virtual void AddQueuedWork(IQueuedWork* InQueuedWork);
+            + {method} virtual void RetractQueuedWork(IQueuedWork* InQueuedWork);
+        }
+
+        FQueuedThreadPool <|.. FQueuedThreadPoolBase
+    }
+
+    package "QueuedThread" {
+        class FQueuedThread #LightGray {
+            # {field} FRunnableThread* Thread;
+            # {field} FEvent* DoWorkEvent;
+            # {field} IQueuedWork* QueuedWork;
+
+            # {method} virtual uint32 Run() override; // Override FRunnable::Run().
+
+            + {method} virtual bool Create(); // Call FRunnableThread::Create().
+
+            + {method} void DoWork(IQueuedWork* work); // Call FEvent::Trigger()
+        }
+    }
+
+    package "QueuedWork" {
+        interface IQueuedWork << Interface for queued work objects >> #White {
+            + {method} virtual void DoThreadWork() = 0;
+            + {method} virtual void Abandon() = 0;
+        }
+
+        class FAsyncTask << template task for jobs queued to thread pools >> #White {
+            + {field} TTask Task;
+
+            + {method} virtual void DoThreadWork() override; // Call FAsyncTask::DoWork()
+            + {method} virtual void Abandon() override;
+
+            + {method} void DoWork(); // Call ExampleAsyncTask::DoWork()
+
+            + {method} void StartSynchronousTask();
+            + {method} void StartBackgroundTask();
+            + {method} void EnsureCompletion();
+            + {method} void Cancel();
+            + {method} void WaitCompletionWithTimeout();
+        }
+
+        class FAutoDeleteAsyncTask << template task for jobs that delete themselves when complete >> #White {
+            + {field} TTask Task;
+
+            + {method} virtual void DoThreadWork() override; // Call FAsyncTask::DoWork()
+            + {method} virtual void Abandon() override;
+
+            + {method} void DoWork(); // Call ExampleAsyncTask::DoWork()
+
+            + {method} void StartSynchronousTask();
+            + {method} void StartBackgroundTask();
+        }
+
+        IQueuedWork <|.. FAsyncTask
+        IQueuedWork <|.. FAutoDeleteAsyncTask
+    }
+
+    package {
+        class FNonAbandonableTask #White {
+            + {method} void Abandon() {}
+            + {method} bool CanAbandon() { return false; }
+        }
+
+        class ExampleAsyncTask #White {
+            friend class FAsyncTask<ExampleAsyncTask>;
+
+            + {method} void DoWork(); // The task to do ...
+        }
+
+        class ExampleAutoDeleteAsyncTask #White {
+            friend class FAutoDeleteAsyncTask<ExampleAutoDeleteAsyncTask>;
+
+            + {method} void DoWork(); // The task to do ...
+        }
+
+        FNonAbandonableTask <|.. ExampleAsyncTask
+        FNonAbandonableTask <|.. ExampleAutoDeleteAsyncTask
+    }
+
+    FQueuedThread "m" *-- "1" FQueuedThreadPoolBase : contains
+    IQueuedWork "m" *-- "1" FQueuedThreadPoolBase : contains
+}
+
+' TaskGraph
+package TaskGraph {
+    package "TaskGraphInterface" {
+        interface FTaskGraphInterface << Interface for task graph system >> #White {
+            - friend class FBaseGraphTask;
+
+            + {method} static void Startup(int32 NumThreads);
+            + {method} static void Shutdown();
+            + {method} static bool IsRunning();
+            + {method} static bool IsMultithread();
+            + {method} static FTaskGraphInterface& Get();
+
+            - {method} virtual void QueueTask(...) = 0;
+        }
+
+        class FTaskGraphImplementation #White {
+            - {field} int32 NumThreads;
+            - {field} int32 NumNameThreads;
+            - {field} FWorkThread WorkerThreads[MAX_THREADS];
+        }
+
+        FTaskGraphInterface <|.. FTaskGraphImplementation
+    }
+
+    package "BaseGraphTask" {
+        class FBaseGraphTask << Base class for all tasks >> #White {
+
+        }
+
+        class TGraphTask << A template for user defined task >> #White {
+
+        }
+
+        FBaseGraphTask <|.. TGraphTask
+    }
+
+    package "WorkThread" {
+        class FWorkThread #White {
+            + {field} FTaskThreadBase* TaskGraphWorker;
+            + {field} FRunnableThread*	RunnableThread;
+        }
+    }
+
+    package {
+        class FTaskThreadBase #LightGray {
+            + {method} virtual void Tick() override;
+            + {method} virtual FSingleThreadRunnable* GetSingleThreadInterface() override;
+
+            + {method} virtual bool Init() override;
+            + {method} virtual uint32 Run() override;
+            + {method} virtual void Stop() override;
+            + {method} virtual void Exit() override;
+        }
+
+        class FNamedTaskThread #White {
+
+        }
+
+        class FTaskThreadAnyThread #White {
+
+        }
+
+        FTaskThreadBase <|.. FNamedTaskThread
+        FTaskThreadBase <|.. FTaskThreadAnyThread
+    }
+
+
+    FBaseGraphTask "友元依赖" <.. FTaskGraphInterface
+    FWorkThread "m" *-- "1" FTaskGraphImplementation: contains
+}
+
+Runnable -right[hidden]-> AsyncTask
+
+FTaskThreadBase "1" *-- "1" FWorkThread: contains
+FRunnableThread "1" *-- "1" FWorkThread: contains
+
+FRunnable <|.. FQueuedThread
+FRunnableThread "1" *-- "1" FQueuedThread : contains
+
+@enduml

@@ -1,0 +1,134 @@
+@startuml
+
+' FQueuedThreadPool
+package QueuedThreadPool {
+    interface FQueuedThreadPool << Interface for queued thread pool >> #AAAAA {
+           + {method} static FQueuedThreadPool* Allocate();
+
+           + {method} virtual bool Create(uint32 InNumQueuedThreads, ...) = 0;
+           + {method} virtual void Destroy() = 0;
+
+           + {method} virtual void AddQueuedWork(IQueuedWork* InQueuedWork) = 0;
+           + {method} virtual void RetractQueuedWork(IQueuedWork* InQueuedWork) = 0;
+       }
+
+       class FQueuedThreadPoolBase << Implement for the FQueuedThreadPool >> #AAAAA {
+           # {field} TArray<IQueuedWork*> QueuedWork;            // 待执行任务
+           # {field} TArray<FQueuedThread*> QueuedThreads; // 可用线程
+           # {field} TArray<FQueuedThread*> AllThreads;          // 所有线程
+
+           + {method} virtual bool Create(uint32 InNumQueuedThreads, ...);
+           + {method} virtual void Destroy();
+
+           + {method} virtual void AddQueuedWork(IQueuedWork* InQueuedWork);
+           + {method} virtual void RetractQueuedWork(IQueuedWork* InQueuedWork);
+       }
+
+       FQueuedThreadPool <|-- FQueuedThreadPoolBase
+}
+
+package QueuedThread {
+    interface FRunnableThread << Interface for "runnable" threads >> #LightGray {
+        # {field} FRunnable* Runnable;
+
+        + {method} static FRunnableThread* Create(FRunnable* InRunnable, ...);
+
+        + {method} virtual bool CreateInternal() = 0;
+    }
+
+    class FRunnable << Interface for "runnable" objects >> #LightGray {
+        + {method} virtual bool Init();
+        + {method} virtual uint32 Run() = 0;
+        + {method} virtual void Exit();
+    }
+
+    class FQueuedThread #LightGray {
+        # {field} FRunnableThread* Thread;
+        # {field} FEvent* DoWorkEvent;
+        # {field} IQueuedWork* QueuedWork;
+
+        # {method} virtual uint32 Run() override; // Override FRunnable::Run().
+
+        + {method} virtual bool Create(); // Call FRunnableThread::Create().
+
+        + {method} void DoWork(IQueuedWork* work); // Call FEvent::Trigger()
+    }
+
+    FRunnable <|-- FQueuedThread
+}
+
+
+' FEvent
+class FEvent << Interface for waitable events >> #Lavender {
+
+}
+
+package QueuedWork {
+    interface IQueuedWork << Interface for queued work objects >> #Wheat {
+        + {method} virtual void DoThreadWork() = 0;
+        + {method} virtual void Abandon() = 0;
+    }
+
+    class FAsyncTask << template task for jobs queued to thread pools >> #Wheat {
+        + {field} TTask Task;
+
+        + {method} virtual void DoThreadWork() override; // Call FAsyncTask::DoWork()
+        + {method} virtual void Abandon() override;
+
+        + {method} void DoWork(); // Call ExampleAsyncTask::DoWork()
+
+        + {method} void StartSynchronousTask();
+        + {method} void StartBackgroundTask();
+        + {method} void EnsureCompletion();
+        + {method} void Cancel();
+        + {method} void WaitCompletionWithTimeout();
+    }
+
+    class FAutoDeleteAsyncTask << template task for jobs that delete themselves when complete >> #Wheat {
+        + {field} TTask Task;
+
+        + {method} virtual void DoThreadWork() override; // Call FAsyncTask::DoWork()
+        + {method} virtual void Abandon() override;
+
+        + {method} void DoWork(); // Call ExampleAutoDeleteAsyncTask::DoWork()
+
+        + {method} void StartSynchronousTask();
+        + {method} void StartBackgroundTask();
+    }
+
+    IQueuedWork <|-- FAutoDeleteAsyncTask
+    IQueuedWork <|-- FAsyncTask
+}
+
+package XXXAsyncTask {
+    class FNonAbandonableTask #LightCyan {
+        + {method} void Abandon() {}
+        + {method} bool CanAbandon() { return false; }
+    }
+
+    class ExampleAsyncTask #LightCyan {
+        friend class FAsyncTask<ExampleAsyncTask>;
+
+        + {method} void DoWork(); // The task to do ...
+    }
+
+    class ExampleAutoDeleteAsyncTask #LightCyan {
+        friend class FAutoDeleteAsyncTask<ExampleAutoDeleteAsyncTask>;
+
+        + {method} void DoWork(); // The task to do ...
+    }
+
+    FNonAbandonableTask <|-- ExampleAsyncTask
+    FNonAbandonableTask <|-- ExampleAutoDeleteAsyncTask
+}
+
+IQueuedWork "m" *-- "1" FQueuedThreadPoolBase : contains
+FQueuedThread "m" *-- "1" FQueuedThreadPoolBase : contains
+
+FRunnableThread "1" *-- "1" FQueuedThread : contains
+FEvent "1" *-- "1" FQueuedThread : contains
+
+FAsyncTask "友元依赖" <.. ExampleAsyncTask
+FAutoDeleteAsyncTask "友元依赖" <.. ExampleAutoDeleteAsyncTask
+
+@enduml
